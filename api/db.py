@@ -143,3 +143,39 @@ def fetch_tiles_within_bbox(xmin, ymin, xmax, ymax):
         }).fetchone()
 
         return result.geojson if result else None    
+    
+
+def fetch_tile_by_point(lat: float, lon: float):
+    query = text("""
+        SELECT
+            tile_id,
+            latitude,
+            longitude,
+            mean_elevation,
+            std_elevation,
+            mean_slope,
+            std_slope,
+            mean_aspect,
+            max_slope,
+            elevation_m,
+            mean_dni,
+            mean_dhi,
+            mean_ghi_proxy,
+            mean_temp,
+            aspect_score,
+            slope_score,
+            solar_score,
+            rugged_penalty,
+            suitability_score,
+            ST_AsGeoJSON(geometry)::json AS geometry            
+        FROM solar_tiles
+        WHERE ST_Covers(
+            geometry,
+            ST_SetSRID(ST_Point(:lon, :lat), 4326)
+        )
+        LIMIT 1
+    """)
+
+    with get_engine().connect() as conn:
+        result = conn.execute(query, {"lat": lat, "lon": lon}).mappings().first()
+        return dict(result) if result else None

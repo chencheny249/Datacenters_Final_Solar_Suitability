@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
-from db import test_connection, fetch_all_tiles, fetch_tile_by_id, fetch_top_tiles, fetch_tiles_within_bbox
+from api.db import test_connection, fetch_all_tiles, fetch_tile_by_id, fetch_top_tiles, fetch_tiles_within_bbox, fetch_tile_by_point
 
 app = FastAPI(
     title="Solar Suitability Service",
@@ -66,3 +66,10 @@ def get_tile(tile_id: str) -> dict:
 
     return tile
 
+
+@app.get("/score")
+def get_score(lat: float, lon: float):
+    tile = fetch_tile_by_point(lat=lat, lon=lon)
+    if tile is None:
+        raise HTTPException(status_code=404, detail="Point not found in any tile")
+    return tile
