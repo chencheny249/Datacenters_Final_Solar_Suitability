@@ -113,3 +113,33 @@ def fetch_top_tiles(limit: int = 10) -> list[dict]:
     with get_engine().connect() as conn:
         result = conn.execute(query, {"limit": limit})
         return [dict(row._mapping) for row in result]
+    
+    
+def fetch_tiles_within_bbox(xmin, ymin, xmax, ymax):
+    query = text("""
+        SELECT jsonb_build_object(
+            'type', 'FeatureCollection',
+            'features', jsonb_agg(
+                jsonb_build_object(
+                    'type', 'Feature',
+                    'geometry', ST_AsGeoJSON(geometry)::jsonb,
+                    'properties', jsonb_build_object(
+                        'tile_id', tile_id,
+                        'suitability_score', suitability_score
+                    )
+                )
+            )
+        ) AS geojson
+        FROM solar_tiles
+        WHERE geometry && ST_MakeEnvelope(:xmin, :ymin, :xmax, :ymax, 4326);
+    """)
+
+    with get_engine().connect() as conn:
+        result = conn.execute(query, {
+            "xmin": xmin,
+            "ymin": ymin,
+            "xmax": xmax,
+            "ymax": ymax
+        }).fetchone()
+
+        return result.geojson if result else None    

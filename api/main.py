@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
-from db import test_connection, fetch_all_tiles, fetch_tile_by_id, fetch_top_tiles
+from db import test_connection, fetch_all_tiles, fetch_tile_by_id, fetch_top_tiles, fetch_tiles_within_bbox
 
 app = FastAPI(
     title="Solar Suitability Service",
@@ -42,6 +42,21 @@ def get_top_tiles(
     return fetch_top_tiles(limit=limit)
 
 
+@app.get("/tiles/within_bbox")
+def get_tiles_within_bbox(
+    xmin: float,
+    ymin: float,
+    xmax: float,
+    ymax: float
+):
+    geojson = fetch_tiles_within_bbox(xmin, ymin, xmax, ymax)
+
+    if geojson is None:
+        raise HTTPException(status_code=404, detail="No tiles found")
+
+    return geojson
+
+
 @app.get("/tiles/{tile_id}")
 def get_tile(tile_id: str) -> dict:
     tile = fetch_tile_by_id(tile_id)
@@ -50,3 +65,4 @@ def get_tile(tile_id: str) -> dict:
         raise HTTPException(status_code=404, detail=f"Tile '{tile_id}' not found")
 
     return tile
+
