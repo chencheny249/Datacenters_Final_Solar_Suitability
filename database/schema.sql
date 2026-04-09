@@ -9,6 +9,7 @@
 --   - geometry in parquet is stored as WKB bytes
 --   - database geometry is stored as PostGIS geometry(Polygon, 4326)
 --   - all columns are NOT NULL based on current dataset inspection
+-- Also added boundary for Boulder County for checks.
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 
@@ -150,3 +151,32 @@ COMMENT ON COLUMN solar_tiles.rugged_penalty IS
 
 COMMENT ON COLUMN solar_tiles.suitability_score IS
 'Final composite solar suitability score. Observed current range approximately 5 to 96, constrained to 0 to 100.';
+
+-- Boulder County boundary table
+
+DROP TABLE IF EXISTS boulder_county_boundary CASCADE;
+
+CREATE TABLE boulder_county_boundary (
+    id SERIAL PRIMARY KEY,
+    geometry geometry(MULTIPOLYGON, 4326) NOT NULL,
+
+    CONSTRAINT chk_boundary_geometry_valid
+        CHECK (ST_IsValid(geometry)),
+
+    CONSTRAINT chk_boundary_geometry_type
+        CHECK (
+            GeometryType(geometry) IN (
+                'MULTIPOLYGON',
+                'ST_MultiPolygon',
+                'POLYGON',
+                'ST_Polygon'
+            )
+        )
+);
+
+CREATE INDEX idx_boulder_county_boundary_geometry_gist
+    ON boulder_county_boundary
+    USING GIST (geometry);
+
+COMMENT ON TABLE boulder_county_boundary IS
+'Boundary polygon for Boulder County used to validate whether coordinates fall inside the service area.';

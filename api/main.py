@@ -7,6 +7,18 @@ app = FastAPI(
     version="1.0.0",
 )
 
+def validate_coordinates(lat: float, lon: float) -> None:
+    if not (-90 <= lat <= 90):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid latitude. Must be between -90 and 90."
+        )
+
+    if not (-180 <= lon <= 180):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid longitude. Must be between -180 and 180."
+        )
 
 @app.get("/")
 def root() -> dict:
@@ -69,6 +81,8 @@ def get_tile(tile_id: str) -> dict:
 
 @app.get("/score")
 def get_score(lat: float, lon: float):
+    validate_coordinates(lat, lon)
+    
     tile = fetch_tile_by_point(lat=lat, lon=lon)
     if tile is None:
         raise HTTPException(status_code=404, detail="Point not found in any tile")
