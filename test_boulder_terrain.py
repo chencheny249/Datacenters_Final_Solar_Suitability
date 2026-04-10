@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 1. Load your HGT file
-file_path = 'n40w106.hgts' 
+file_path = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\data\raw\n40w106.hgts' 
 
 
 with rasterio.open(file_path) as src:

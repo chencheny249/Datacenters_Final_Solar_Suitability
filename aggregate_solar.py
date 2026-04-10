@@ -4,7 +4,7 @@ import os
 import sys
 
 # 1. Define where your solar CSVs are stored - USE THE RAW STRING 'r'
-input_folder = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\data_raw\solar_raw'
+input_folder = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\data\raw\solar_raw'
 
 #TODO 
 input_folder = r'...\Datacenters_Final_Solar_Suitability\solar_raw'
