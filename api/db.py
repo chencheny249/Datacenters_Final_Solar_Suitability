@@ -181,12 +181,13 @@ def fetch_tile_by_point(lat: float, lon: float):
         return dict(result) if result else None
     
 
+
 def is_in_boulder_county(lat: float, lon: float) -> bool:
     query = text("""
         SELECT EXISTS (
             SELECT 1
             FROM boulder_county_boundary
-            WHERE ST_Contains(
+            WHERE ST_Covers(
                 geometry,
                 ST_SetSRID(ST_Point(:lon, :lat), 4326)
             )
@@ -195,4 +196,4 @@ def is_in_boulder_county(lat: float, lon: float) -> bool:
 
     with get_engine().connect() as conn:
         result = conn.execute(query, {"lat": lat, "lon": lon}).scalar()
-        return bool(result)
+        return bool(result)    
