@@ -25,53 +25,79 @@ def load_geojson(geojson_path: str) -> dict:
         raise FileNotFoundError(f"GeoJSON file not found: {geojson_path}")
 
     with open(geojson_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return data
+        return json.load(f)
 
 
-def extract_geometry(geojson_data: dict) -> str:
-    if geojson_data.get("type") == "FeatureCollection":
+def extract_geometries(geojson_data: dict) -> list[str]:
+    geojson_type = geojson_data.get("type")
+
+    if geojson_type == "FeatureCollection":
         features = geojson_data.get("features", [])
         if not features:
             raise ValueError("GeoJSON FeatureCollection has no features")
-        geometry = features[0].get("geometry")
-    elif geojson_data.get("type") == "Feature":
+
+        geometries = [f.get("geometry") for f in features if f.get("geometry") is not None]
+
+    elif geojson_type == "Feature":
         geometry = geojson_data.get("geometry")
-    elif geojson_data.get("type") in {"Polygon", "MultiPolygon"}:
-        geometry = geojson_data
+        if geometry is None:
+            raise ValueError("No geometry found in GeoJSON Feature")
+        geometries = [geometry]
+
+    elif geojson_type in {"Polygon", "MultiPolygon"}:
+        geometries = [geojson_data]
+
     else:
-        raise ValueError("Unsupported GeoJSON format")
+        raise ValueError(f"Unsupported GeoJSON format: {geojson_type}")
 
-    if geometry is None:
-        raise ValueError("No geometry found in GeoJSON")
+    if not geometries:
+        raise ValueError("No geometries found in GeoJSON")
 
-    return json.dumps(geometry)
+    return [json.dumps(g) for g in geometries]
 
 
-def insert_boundary(conn, geometry_json: str):
+def insert_boundary(conn, geometry_json_list: list[str]):
     conn.execute(text(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;"))
 
-    conn.execute(text(f"""
-        INSERT INTO {TABLE_NAME} (geometry)
-        VALUES (
-            ST_Multi(
-                ST_SetSRID(
-                    ST_GeomFromGeoJSON(:geometry_json),
-                    4326
-                )
-            )::geometry(MULTIPOLYGON, 4326)
+    if len(geometry_json_list) == 1:
+        conn.execute(text(f"""
+            INSERT INTO {TABLE_NAME} (geometry)
+            VALUES (
+                ST_Multi(
+                    ST_SetSRID(
+                        ST_GeomFromGeoJSON(:geometry_json),
+                        4326
+                    )
+                )::geometry(MULTIPOLYGON, 4326)
+            )
+        """), {"geometry_json": geometry_json_list[0]})
+    else:
+        values_sql = ", ".join(
+            f"(:geom_{i})" for i in range(len(geometry_json_list))
         )
-    """), {"geometry_json": geometry_json})
+        params = {f"geom_{i}": g for i, g in enumerate(geometry_json_list)}
+
+        conn.execute(text(f"""
+            INSERT INTO {TABLE_NAME} (geometry)
+            SELECT
+                ST_Multi(
+                    ST_Union(
+                        ST_SetSRID(ST_GeomFromGeoJSON(geom_json), 4326)
+                    )
+                )::geometry(MULTIPOLYGON, 4326)
+            FROM (
+                VALUES {values_sql}
+            ) AS t(geom_json)
+        """), params)
 
 
 def main():
     geojson_data = load_geojson(GEOJSON_PATH)
-    geometry_json = extract_geometry(geojson_data)
+    geometry_json_list = extract_geometries(geojson_data)
     engine = build_engine()
 
     with engine.begin() as conn:
-        insert_boundary(conn, geometry_json)
+        insert_boundary(conn, geometry_json_list)
 
     print(f"Loaded Boulder County boundary into {TABLE_NAME}.")
 
