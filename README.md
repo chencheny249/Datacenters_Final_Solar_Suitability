@@ -10,13 +10,30 @@ These scripts deal with the geospatial analysis before the data is moved to Goog
 - `compute_suitability.py` merges terrain and solar data to get final suitability score from 0 to 100
 - `plot_suitability.py` creates a map (suitability_map.png) to visualize the solar suitability results
 
-## How to Run
+## API 
+- `/tiles` 
+   - Inputs:
+   - Output: JSON?
+- `/tiles/top` gets top X tiles by suitability scores
+   - Inputs: limit (top X tiles, int)
+   - Output: JSON?
+- `/tiles/within_bbox` gets tiles within specified boundary box
+   - Inputs: xmin (x minimum point, int), ymin (y minimum point, int), xmax (x maximum point, int), ymax (y maximum point, int)
+   - Output: JSON?
+- `/tiles/{tile_id}` gets that specific tile
+   - Inputs: tile_id (tile ID, string)
+   - Output: JSON?
+- `/score` gets the solar suitability score.
+   - Inputs: lat (latitude, int), lon (longitude, int)
+   - Output: JSON with suitability score and score breakdown
+
+## How to Run Locally
 ### 1. Preprocessing
-- Run `python make_tiles.py` to create `boulder_grid.geojson`.
-- Run `python aggregate_solar.py` to create `solar_averages.csv`
-- Run `python derive_terrain_features.py` to get `terrain_features.csv`
-- Run `python compute_suitability.py` to create `boulder_tiles.parquet`
-### 2. Create containers
+1. Run `python make_tiles.py` to create `boulder_grid.geojson`.
+2. Run `python aggregate_solar.py` to create `solar_averages.csv`
+3. Run `python derive_terrain_features.py` to get `terrain_features.csv`
+4. Run `python compute_suitability.py` to create `boulder_tiles.parquet`
+### 2. Deployment
 1. Make sure requirements are met: `pip install -r requirements.txt `
 2. Create containers: `docker run -d --name solar-postgis -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=solar -p 5432:5432 postgis/postgis:15-3.4 `
 3. Start the existing container: `docker start solar-postgis`
@@ -27,3 +44,4 @@ These scripts deal with the geospatial analysis before the data is moved to Goog
    - `python database/load_boundary.py`
    - `uvicorn api.main:app --reload `
 7. Go to `http://127.0.0.1:8000/docs`
+### 3. Use the API 
