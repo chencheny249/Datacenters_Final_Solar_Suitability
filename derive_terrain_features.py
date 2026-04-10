@@ -6,7 +6,7 @@ import pandas as pd
 import os
 
 # 1. Paths
-dem_path = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\n40w106.hgts'
+dem_path = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\data_raw\n40w106.hgts'
 grid_path = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\processed\boulder_grid.geojson'
 output_csv = r'C:\Users\chenc\Documents\Datacenters_Final_Solar_Suitability\processed\terrain_features.csv'
 
