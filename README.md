@@ -1,6 +1,27 @@
 # Datacenters_Final_Solar_Suitability
 Team: Vanessa Thorsten, Chenchen Yuan
 
+The goal of this project was to build a cloud-based service that takes a latitude and longitude for a location within Boulder County, Colorado and returns a terrain-aware solar suitability score for that location. Traditionally, finding the best locations for solar-panel systems required users to manually interpret raw geospatial and weather data. Our service aimed to automate this process by combining these data into a single interpretable score that indicates the potential suitability of a location for solar development. 
+
+Project Architecture Overview
+
+The workflow consists of two stages:
+
+Offline preprocessing
+
+DEM terrain features extracted
+NSRDB solar radiation aggregated
+Boulder County divided into 4 km × 4 km tiles (based on the available data)
+Suitability score computed per tile
+Results exported as GeoJSON + Parquet
+Data loaded into PostgreSQL (Cloud SQL + PostGIS)
+
+Online query service
+
+FastAPI container deployed on Cloud Run
+Queries Cloud SQL using spatial lookup
+Returns suitability score and predictors
+
 ## Offline Preprocessing Scripts
 These scripts deal with the geospatial analysis before the data is moved to Google Cloud.
 - `test_boulder_terrain.py` ensures that the terrain features are computed correctly
@@ -11,6 +32,8 @@ These scripts deal with the geospatial analysis before the data is moved to Goog
 - `plot_suitability.py` creates a map (suitability_map.png) to visualize the solar suitability results
 
 ## API 
+- `/health`
+    - Checks service + database connectivity
 - `/tiles` 
    - Inputs:
    - Output: JSON?
@@ -26,6 +49,9 @@ These scripts deal with the geospatial analysis before the data is moved to Goog
 - `/score` gets the solar suitability score.
    - Inputs: lat (latitude, int), lon (longitude, int)
    - Output: JSON with suitability score and score breakdown
+- `/score_plot` gets a mapping of the solar suitability score.
+   - Inputs: lat (latitude, int), lon (longitude, int)
+   - Output: image with suitability score on the geographic location and coloring based on the strength of the solar suitability score
 
 ## How to Run Locally
 ### 1. Preprocessing
@@ -44,4 +70,71 @@ These scripts deal with the geospatial analysis before the data is moved to Goog
    - `python database/load_boundary.py`
    - `uvicorn api.main:app --reload `
 7. Go to `http://127.0.0.1:8000/docs`
-### 3. Use the API 
+
+Example:
+
+/score?lat=40.015&lon=-105.27
+
+Returns:
+
+tile_id
+mean_elevation
+mean_slope
+mean_aspect
+mean_ghi_proxy
+aspect_score
+slope_score
+solar_score
+rugged_penalty
+suitability_score
+
+Example:
+
+/score_plot?lat=40.015&lon=-105.27
+
+Returns map visualization highlighting selected tile
+
+## How to Run on Cloud Deployment (Google Cloud Run)
+
+The API is deployed using:
+
+Cloud Build
+Artifact Registry
+Cloud Run
+Cloud SQL (PostgreSQL + PostGIS)
+
+Deploy container:
+
+gcloud builds submit --config cloudbuild.yaml .
+
+Deploy service:
+
+gcloud run deploy solar-api-demo \
+  --image us-central1-docker.pkg.dev/solar-suitability-demo/solar-images/solar-cloud \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --add-cloudsql-instances solar-suitability-demo:us-central1:solar-postgis-cloud \
+  --env-vars-file cloud/cloudrun.env
+Example Live Deployment
+
+Service URL:
+
+https://solar-api-demo-759546826359.us-central1.run.app
+
+Example query:
+
+/score?lat=39.97&lon=-105.06
+Data Sources
+
+Terrain:
+
+NASA DEM datasets
+
+Solar radiation:
+
+NSRDB (NREL)
+
+Notes on Architecture Decisions
+
+Suitability scores are precomputed offline and stored in PostGIS to enable fast lookup performance during API requests. The deployed service performs read-only spatial queries and does not persist user requests, allowing the system to remain lightweight and stateless.
