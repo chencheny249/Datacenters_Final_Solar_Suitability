@@ -1,0 +1,11 @@
+numpy<2
+pandas>=2.0
+pyarrow>=14.0
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+fastapi>=0.110
+uvicorn>=0.27
+geopandas
+matplotlib
+contextily
+shapely

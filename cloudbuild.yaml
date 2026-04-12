@@ -1,0 +1,11 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - cloud/Dockerfile
+      - -t
+      - us-central1-docker.pkg.dev/solar-suitability-demo/solar-images/solar-cloud
+      - .
+images:
+  - us-central1-docker.pkg.dev/solar-suitability-demo/solar-images/solar-cloud

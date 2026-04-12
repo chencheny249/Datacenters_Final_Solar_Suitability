@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# virtual environments
+.venv/
+venv/
+
+# env files
+.env
+.env.*
+cloud/cloudrun.env
+
+# notebooks
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
